@@ -8,5 +8,8 @@ export const sendRequest = (params) => {
 
 const getCallbackUrl = () => {
   let url = process.env.CALLBACK_HOST;
+  if (!url) {
+    throw new Error("CALLBACK_HOST is not set");
+  }
   return url + (url.endsWith("/") ? "" : "/");
 };
