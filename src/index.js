@@ -1,51 +1,52 @@
 import express from 'express';
 import { v4 as uuid } from 'uuid';
-import axios from "axios";
+import {sendRequest} from "./callback.js";
 import 'dotenv/config';
+import {createCall} from "./call.js";
 
 const app = express();
 
 const activities = [];
 
 app.get('/', (req, res) => {
-  res.send('Daktela mock api!');
+  res.send('Daktela mock api on /api/v6/');
 });
 
-app.get('/activities.json', (req, res) => {
-  res.json(activities);
+app.get('/api/v6/activities.json', (req, res) => {
+  res.json({ result: activities });
 });
 
-app.post('/activities.json', (req, res) => {
+app.post('/api/v6/activities.json', (req, res) => {
   const activity = {
     name: uuid(),
   };
 
   activities.push(activity);
 
+  const call = createCall();
+  const ringTime = 3; // seconds
   setTimeout(() => {
-    const callId = uuid();
-    activity.call = {
-      id: callId
-    };
-    //axios.get(process.env.CALLBACK_HOST + 'daktela/call/log', { params: { id: callId }});
-  }, 5000);
+    activity.call = call;
+    sendRequest({ id: call.id });
+  }, (ringTime + call.duration) * 1000);
 
-  res.status(201).json(activity);
+  res.status(201).json({ result: activity });
 });
 
-app.get('/activitiesCall/:id.json', (req, res) => {
-  const activity = activities.find((activity) => activity.call.id === req.params.id);
+app.get('/api/v6/activitiesCall/:id.json', (req, res) => {
+  const activity = activities.find((activity) => activity?.call?.id === req.params.id);
 
   if (activity) {
     res.json({
-      id: activity.call.id,
-      activities: [{
-        name: activity.name,
-      }],
-      answered: true,
+      result: {
+        ...activity.call,
+        activities: [{
+          name: activity.name,
+        }],
+      }
     });
   } else {
-    res.status(404).json({ message: 'Activity not found' });
+    res.status(404).json({ error: 'Activity not found' });
   }
 });
 
